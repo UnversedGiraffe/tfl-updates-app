@@ -54,7 +54,7 @@ The live version can be accessed via the demo link above. The frontend code is s
 * Add status display for more TfL modes (DLR, Overground, Elizabeth Line, etc.).
 * Refine CSS and visual design, potentially adding official TfL line colors.
 * Enhance frontend error handling and loading states.
-* Add a Journey Planning feature.
+* Add a Journey Planning feature (Phase 2).
 
 ## License
 
