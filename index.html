@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TfL Live Status Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header class="site-header">
+        <h1>TfL Live Status</h1>
+        <p id="last-updated">Last updated: <span id="timestamp">--:--:--</span></p>
+    </header>
+
+    <main class="main-content">
+        <h2>Current Status</h2>
+
+        <div id="status-container" class="status-grid">
+            <p id="loading-message">Loading live status...</p>
+
+            </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>Data sourced from TfL Unified API.</p>
+        </footer>
+
+    <script src="script.js" defer></script>
+
+</body>
+</html>

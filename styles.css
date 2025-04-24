@@ -1,0 +1,189 @@
+/* --- Basic Reset & Defaults --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.6;
+  background-color: #fdf8e1;
+  color: #5c4033;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+/* --- Layout Containers --- */
+.site-header,
+.main-content,
+.site-footer {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+}
+
+/* --- Header Styling --- */
+.site-header {
+  background-color: #e07a5f;
+  color: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.site-header h1 {
+  margin-bottom: 0.5rem;
+}
+
+#last-updated {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+/* --- Main Content Styling --- */
+.main-content h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #a0522d;
+}
+
+/* --- Status Grid Layout --- */
+.status-grid {
+  display: grid;
+  gap: 1rem;
+  /* Mobile first: 1 column */
+  grid-template-columns: 1fr;
+}
+
+/* --- Status Card Styling --- */
+.status-card {
+  background-color: #fffaf0;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between; /* Space out name and status */
+  align-items: center;
+  border-left: 5px solid #ccc; /* Default border - will be overridden by status */
+}
+
+.line-name {
+  font-weight: bold;
+  margin-right: 1rem; /* Ensure space between name and status */
+}
+
+.line-status {
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-align: right;
+  min-width: 100px; /* Give status text some minimum space */
+}
+
+/* --- Status Specific Colors & Styles --- */
+
+/* Good Service */
+.status-good-service {
+  color: #2e7d32; /* Darker Green */
+  background-color: #e8f5e9; /* Light Green background */
+}
+.status-card.line-status-good-service {
+  border-left-color: #4caf50; /* Green border */
+}
+
+/* Minor Delays */
+.status-minor-delays {
+  color: #c65102; /* Darker Orange */
+  background-color: #fff3e0; /* Light Orange background */
+}
+.status-card.line-status-minor-delays {
+  border-left-color: #ff9800; /* Orange border */
+}
+
+/* Severe Delays / Part Closure / Planned Closure / Closed etc. */
+.status-severe-delays,
+.status-part-closure,
+.status-planned-closure,
+.status-closed,
+.status-suspended {
+  color: #b71c1c; /* Darker Red */
+  background-color: #ffebee; /* Light Red background */
+}
+.status-card.line-status-severe-delays,
+.status-card.line-status-part-closure,
+.status-card.line-status-planned-closure,
+.status-card.line-status-closed,
+.status-card.line-status-suspended {
+  border-left-color: #f44336; /* Red border */
+}
+
+/* Special Service / Other */
+.status-special-service {
+    color: #0d47a1; /* Darker Blue */
+    background-color: #e3f2fd; /* Light Blue background */
+}
+.status-card.line-status-special-service {
+    border-left-color: #2196f3; /* Blue border */
+}
+
+/* Default / Unknown */
+.status-unknown {
+    color: #37474f; /* Blue Grey */
+    background-color: #eceff1; /* Light Blue Grey background */
+}
+.status-card.line-status-unknown {
+    border-left-color: #90a4ae; /* Grey border */
+}
+
+
+/* --- Loading Message --- */
+#loading-message {
+  text-align: center;
+  font-style: italic;
+  color: #888;
+  padding: 2rem;
+}
+
+/* --- Footer Styling --- */
+.site-footer {
+  margin-top: auto; /* Pushes footer to bottom */
+  padding-top: 1.5rem;
+  text-align: center;
+  font-size: 0.85em;
+  color: #a0522d; /* Sienna brown */
+  border-top: 1px solid #e0e0e0; /* Light separator line */
+}
+
+/* --- Responsive Adjustments --- */
+
+/* Small tablets and up (e.g., > 600px) */
+@media (min-width: 600px) {
+  .status-grid {
+    /* 2 columns */
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Larger tablets/Small desktops and up (e.g., > 900px) */
+@media (min-width: 900px) {
+  .status-grid {
+    /* 3 columns */
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large desktops and up (e.g., > 1200px) */
+@media (min-width: 1200px) {
+  .status-grid {
+    /* Optional: 4 columns on very wide screens */
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
