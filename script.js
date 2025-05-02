@@ -1,14 +1,14 @@
 // --- Configuration ---
-const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod"; // Replace
-const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram"; // Fetch all modes for filtering
+const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod";
+const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram";
 const API_ENDPOINT = `${API_BASE_URL}/modes/${MODES_TO_FETCH}/status`;
-const REFRESH_INTERVAL_MS = 60000; // Refresh every 60 seconds
+const REFRESH_INTERVAL_MS = 60000;
 
 // --- DOM Elements ---
 const statusContainer = document.getElementById("status-container");
 const loadingMessage = document.getElementById("loading-message");
 const timestampSpan = document.getElementById("timestamp");
-const modeSelect = document.getElementById("mode-select"); // Get the dropdown
+const modeSelect = document.getElementById("mode-select");
 
 // --- Global State ---
 let fullStatusData = []; // Store the last full fetch results
@@ -28,8 +28,8 @@ const lineColors = {
     victoria: "#0098D4",
     "waterloo-city": "#95CDBA",
     dlr: "#00A4A7",
-    "london-overground": "#EE7C0E", // Note: Overground ID might be different - check API response if needed
-    overground: "#EE7C0E", // Add common variation
+    "london-overground": "#EE7C0E",
+    overground: "#EE7C0E", 
     "elizabeth-line": "#6950a1",
     tram: "#84B817",
     // Add colours for any other lines/modes if needed
