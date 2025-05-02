@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TfL Live Status Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+
 </head>
 <body>
 
@@ -16,15 +21,25 @@
     <main class="main-content">
         <h2>Current Status</h2>
 
-        <div id="status-container" class="status-grid">
-            <p id="loading-message">Loading live status...</p>
+        <div class="mode-selector">
+            <label for="mode-select">Select Mode:</label>
+            <select name="modes" id="mode-select">
+                <option value="tube" selected>Tube</option>
+                <option value="dlr">DLR</option>
+                <option value="overground">Overground</option>
+                <option value="elizabeth-line">Elizabeth line</option>
+                <option value="tram">Tram</option>
+            </select>
+        </div>
 
+        <div id="status-container" class="status-list">
+            <p id="loading-message">Loading live status...</p>
             </div>
     </main>
 
     <footer class="site-footer">
         <p>Data sourced from TfL Unified API.</p>
-        </footer>
+    </footer>
 
     <script src="script.js" defer></script>
 
