@@ -2,7 +2,8 @@
 // !!! IMPORTANT: Replace this with your actual API Gateway Invoke URL !!!
 const API_BASE_URL =
   "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod";
-const MODES_TO_FETCH = "tube";
+
+const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line";
 const API_ENDPOINT = `${API_BASE_URL}/modes/${MODES_TO_FETCH}/status`;
 const REFRESH_INTERVAL_MS = 60000; // Refresh every 60 seconds (60 * 1000 ms)
 
