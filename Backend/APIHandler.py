@@ -29,15 +29,15 @@ except Exception as e:
 def _format_response(status_code, body_object):
     """Helper to format the response dictionary for API Gateway."""
     # Using the user's specific Amplify URL now
-    origin = 'https://main.dkjebwugayu2x.amplifyapp.com' # Replace if URL changes
+    origin = 'https://main.d37h5b8avdkstc.amplifyapp.com'
     return {
         'statusCode': status_code,
         'headers': {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': origin
+            'Access-Control-Allow-Origin': origin,
             # Add other CORS headers if needed (usually handled by OPTIONS response)
-            # 'Access-Control-Allow-Methods': 'GET,OPTIONS',
-            # 'Access-Control-Allow-Headers': 'Content-Type'
+            'Access-Control-Allow-Methods': 'OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
         },
         'body': json.dumps(body_object)
     }
@@ -73,23 +73,33 @@ def _make_tfl_request(url):
 
 def _extract_simplified_status(line_data):
     """
-    Extracts line name and status description from a single line object
+    Extracts line name, status description, and mode name from a single line object
     returned by the TfL API. Handles missing data gracefully.
     """
     try:
+        # Use 'id' if 'name' is missing, fallback to 'Unknown Line'
         line_name = line_data.get('name', line_data.get('id', 'Unknown Line'))
+        # --- ADDED LINE ---
+        mode_name = line_data.get('modeName', 'unknown') # Get the mode name
+        # --- END ADDED LINE ---
         line_statuses = line_data.get('lineStatuses', [])
         if line_statuses:
+            # Status description is usually in the first element
             status_description = line_statuses[0].get('statusSeverityDescription', 'Status Unknown')
         else:
+            # Handle cases where a line might be returned without a status
             status_description = 'Status Not Available'
-        return {'line': line_name, 'status': status_description}
+        
+        # --- UPDATED RETURN VALUE ---
+        return {'line': line_name, 'status': status_description, 'mode': mode_name}
+        # --- END UPDATED RETURN VALUE ---
+        
     except Exception as e:
+        # Log error if parsing a specific line fails, return a placeholder
         print(f"WARN: Error parsing line data: {line_data}. Error: {e}")
-        return {'line': line_data.get('id', 'Parse Error'), 'status': 'Parse Error'}
-
-
-# --- Main Handler ---
+        # Try to return ID if name failed but ID exists, otherwise use placeholder
+        # --- UPDATED RETURN VALUE (for error case) ---
+        return {'line': line_data.get('id', 'Parse Error'), 'status': 'Parse Error', 'mode': 'unknown'}
 
 def lambda_handler(event, context):
     """
