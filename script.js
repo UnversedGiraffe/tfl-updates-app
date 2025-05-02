@@ -1,18 +1,19 @@
 // --- Configuration ---
-const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod";
-const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram";
+// !!! IMPORTANT: Replace with your actual API Gateway Invoke URL !!!
+const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod"; // Replace if needed
+// Fetch all modes that might be needed by any tab
+const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram"; 
 const API_ENDPOINT = `${API_BASE_URL}/modes/${MODES_TO_FETCH}/status`;
 const REFRESH_INTERVAL_MS = 60000; // Refresh every 60 seconds
 
 // --- DOM Elements ---
 const statusContainer = document.getElementById("status-container");
-const loadingMessage = document.getElementById("loading-message");
+const loadingMessage = document.getElementById("loading-message"); // Keep ref if needed elsewhere, or remove if #status-container innerHTML is enough
 const timestampSpan = document.getElementById("timestamp");
-const modeSelect = document.getElementById("mode-select");
+const modeTabsContainer = document.querySelector(".mode-tabs"); // Get the tab container
 
 // --- Global State ---
 let fullStatusData = []; // Store the last full fetch results
-let currentSelectedMode = 'tube'; // Default to tube
 
 // --- TfL Line Colours (Add more as needed) ---
 const lineColors = {
@@ -28,11 +29,10 @@ const lineColors = {
     victoria: "#0098D4",
     "waterloo-city": "#95CDBA",
     dlr: "#00A4A7",
-    "london-overground": "#EE7C0E", // Note: Overground ID might be different - check API response if needed
-    overground: "#EE7C0E", // Add common variation
+    "london-overground": "#EE7C0E", 
+    overground: "#EE7C0E", 
     "elizabeth-line": "#6950a1",
     tram: "#84B817",
-    // Add colours for any other lines/modes if needed
     default: "#cccccc" // Default grey
 };
 
@@ -44,9 +44,9 @@ const lineColors = {
  */
 async function fetchStatusData() {
   console.log("Fetching status from:", API_ENDPOINT);
-  // Show loading message only if container is empty (initial load)
-  if (!statusContainer.hasChildNodes() || statusContainer.textContent.trim() === "") {
-      statusContainer.innerHTML = '<p id="loading-message">Loading live status...</p>';
+  // Show loading message visually if container is empty
+  if (!statusContainer.querySelector('.status-card') && !statusContainer.querySelector('.error-message')) {
+       statusContainer.innerHTML = '<p id="loading-message">Loading live status...</p>';
   }
 
   try {
@@ -78,7 +78,6 @@ function getStatusTextClass(statusText) {
     .toLowerCase()
     .replace(/\s+/g, "-");
 
-  // Prioritize finding specific classes, default otherwise
   if (baseClass.includes("good-service")) return "status-good-service";
   if (baseClass.includes("minor-delays")) return "status-minor-delays";
   if (
@@ -87,56 +86,55 @@ function getStatusTextClass(statusText) {
     baseClass.includes("planned-closure") ||
     baseClass.includes("closed") ||
     baseClass.includes("suspended")
-  ) return "status-severe-delays"; // Group major issues
+  ) return "status-severe-delays"; 
   if (baseClass.includes("special-service")) return "status-special-service";
   if (baseClass.includes("not-available")) return "status-not-available";
   if (baseClass.includes("parse-error")) return "status-parse-error";
   
-  return "status-unknown"; // Default class
+  return "status-unknown"; 
 }
 
 
 /**
  * Renders the filtered status data onto the page.
- * @param {Array} filteredData - Array of status objects for the selected mode.
+ * @param {Array} filteredData - Array of status objects for the selected mode(s).
  */
 function renderStatuses(filteredData) {
-  // Clear previous content
-  statusContainer.innerHTML = "";
+  statusContainer.innerHTML = ""; // Clear previous content/loading message
 
   if (!filteredData || filteredData.length === 0) {
-    statusContainer.innerHTML = `<p>No status available for ${currentSelectedMode}.</p>`;
+    const activeTabButton = modeTabsContainer.querySelector('.tab-button.active');
+    const currentTabLabel = activeTabButton ? activeTabButton.textContent.trim() : 'selected view';
+    statusContainer.innerHTML = `<p>No status available for ${currentTabLabel}.</p>`;
     return;
   }
 
   filteredData.forEach((item) => {
-    // Create elements
     const card = document.createElement("div");
-    const lineDetailsDiv = document.createElement("div"); // Wrapper for name/status
+    const lineDetailsDiv = document.createElement("div"); 
     const lineNameSpan = document.createElement("span");
     const statusSpan = document.createElement("span");
 
-    // Get line color - use line ID (often more consistent) if available, fallback to name
-    const lineIdForColor = item.line ? item.line.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '-') : 'default';
+    // Use line id (more reliable for mapping) if available, fallback to name
+    // Convert to lowercase, handle '&', replace spaces for key matching
+    const lineIdForColor = (item.id || item.line || 'default')
+                            .toLowerCase()
+                            .replace(/&/g, 'and')
+                            .replace(/\s+/g, '-'); 
     const color = lineColors[lineIdForColor] || lineColors.default;
     
-    // Get CSS class for status text
     const statusClass = getStatusTextClass(item.status);
 
-    // Set classes, content, and style
     card.classList.add("status-card");
-    // Apply line color using CSS variable for the ::before pseudo-element or border
-    card.style.setProperty('--line-color', color); 
+    card.style.setProperty('--line-color', color); // Set CSS variable for border
 
     lineDetailsDiv.classList.add("line-details");
-
     lineNameSpan.classList.add("line-name");
-    lineNameSpan.textContent = item.line; // Use the display name
+    lineNameSpan.textContent = item.line; // Display name
 
-    statusSpan.classList.add("line-status", statusClass); // Add status severity class for text color
+    statusSpan.classList.add("line-status", statusClass); 
     statusSpan.textContent = item.status;
 
-    // Append elements
     lineDetailsDiv.appendChild(lineNameSpan);
     lineDetailsDiv.appendChild(statusSpan);
     card.appendChild(lineDetailsDiv);
@@ -163,59 +161,87 @@ function handleError(error) {
 }
 
 /**
- * Filters the full data based on the selected mode and renders it.
+ * Filters the stored full data based on the currently active tab and renders it.
  */
-function displayFilteredStatus() {
-  currentSelectedMode = modeSelect.value; // e.g., "tube", "dlr"
-  console.log(`Filtering for mode: ${currentSelectedMode}`);
+function displayStatusForActiveTab() {
+    const activeButton = modeTabsContainer.querySelector('.tab-button.active');
+    if (!activeButton) {
+        console.error("No active tab button found.");
+        renderStatuses([]); // Render empty state
+        return;
+    }
 
-  if (!fullStatusData || fullStatusData.length === 0) {
-      console.log("No data available to filter.");
-      renderStatuses([]); // Render empty state
-      return;
-  }
+    const modesToShowStr = activeButton.dataset.modes; // e.g., "tube,elizabeth-line,dlr,..."
+    if (!modesToShowStr) {
+         console.error("Active tab button missing data-modes attribute.");
+         renderStatuses([]);
+         return;
+    }
 
-  let filteredData = [];
-  // --- MODIFICATION START ---
-  if (currentSelectedMode === 'tube') {
-      // If 'Tube' is selected, include both 'tube' and 'elizabeth-line' modes
-      filteredData = fullStatusData.filter(item => 
-          item.mode === 'tube' || item.mode === 'elizabeth-line'
-      );
-      console.log(`Including elizabeth-line with tube. Filtered count: ${filteredData.length}`);
-  } else {
-      // For all other selections, filter normally by the selected mode
-      filteredData = fullStatusData.filter(item => 
-          item.mode === currentSelectedMode
-      );
-      console.log(`Filtered for ${currentSelectedMode}. Count: ${filteredData.length}`);
-  }
-  // --- MODIFICATION END ---
-
-  renderStatuses(filteredData);
+    const modesToShowArr = modesToShowStr.split(','); // ['tube', 'elizabeth-line', ...]
+    console.log(`Filtering for active tab modes: ${modesToShowArr.join(', ')}`);
+    
+    if (!fullStatusData || fullStatusData.length === 0) {
+        console.log("No data available to filter.");
+        renderStatuses([]); 
+        return;
+    }
+    
+    // Filter based on the 'mode' property returned by the Lambda
+    const filteredData = fullStatusData.filter(item => modesToShowArr.includes(item.mode));
+    renderStatuses(filteredData);
 }
 
 
 /**
- * Main function to load data and update the UI.
+ * Main function to load data and update the UI based on the active tab.
  */
 async function loadAndRenderStatus() {
   try {
-    fullStatusData = await fetchStatusData(); // Fetch all data and store it
-    displayFilteredStatus(); // Filter and display based on current dropdown
+    fullStatusData = await fetchStatusData(); // Fetch/refresh ALL data and store it
+    displayStatusForActiveTab(); // Filter and display based on current active tab
     updateTimestamp();
   } catch (error) {
     handleError(error);
   }
 }
 
+/**
+ * Handles clicks within the tab container.
+ * @param {Event} event - The click event object.
+ */
+function handleTabClick(event) {
+    // Check if the clicked element is a tab button AND not already active
+    const clickedButton = event.target.closest('.tab-button');
+    if (!clickedButton || clickedButton.classList.contains('active')) {
+        return; // Ignore clicks not on inactive buttons
+    }
+
+    // Remove active class from all buttons
+    const allButtons = modeTabsContainer.querySelectorAll('.tab-button');
+    allButtons.forEach(button => button.classList.remove('active'));
+
+    // Add active class to the clicked button
+    clickedButton.classList.add('active');
+
+    // Re-filter and display data based on the newly active tab
+    displayStatusForActiveTab();
+}
+
+
 // --- Event Listeners & Initial Load ---
 
-// Add event listener for dropdown changes
-modeSelect.addEventListener('change', displayFilteredStatus);
+// Add single event listener to the container for delegation
+if (modeTabsContainer) {
+    modeTabsContainer.addEventListener('click', handleTabClick);
+} else {
+    console.error("Mode tabs container not found!");
+}
+
 
 // Perform initial load when the script runs
 loadAndRenderStatus();
 
-// Set up interval to refresh data periodically
+// Set up interval to refresh ALL data periodically
+// displayStatusForActiveTab will ensure the correct filter is applied after refresh
 setInterval(loadAndRenderStatus, REFRESH_INTERVAL_MS);
