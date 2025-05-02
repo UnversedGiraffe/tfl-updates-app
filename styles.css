@@ -1,204 +1,200 @@
-// --- Configuration ---
-const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod"; // Replace
-const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram"; // Fetch all modes for filtering
-const API_ENDPOINT = `${API_BASE_URL}/modes/${MODES_TO_FETCH}/status`;
-const REFRESH_INTERVAL_MS = 60000; // Refresh every 60 seconds
+/* --- Google Font Import --- */
+/* Example: Montserrat (clean sans-serif) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap');
+/* Or uncomment to use Hammersmith One (TfL-inspired) */
+/* @import url('https://fonts.googleapis.com/css2?family=Hammersmith+One&display=swap'); */
 
-// --- DOM Elements ---
-const statusContainer = document.getElementById("status-container");
-const loadingMessage = document.getElementById("loading-message");
-const timestampSpan = document.getElementById("timestamp");
-const modeSelect = document.getElementById("mode-select"); // Get the dropdown
+/* --- Basic Reset & Defaults --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-// --- Global State ---
-let fullStatusData = []; // Store the last full fetch results
-let currentSelectedMode = 'tube'; // Default to tube
+body {
+  /* Using Montserrat as the primary font */
+  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Uncomment below to use Hammersmith One */
+  /* font-family: 'Hammersmith One', sans-serif; */
+  line-height: 1.6;
+  background-color: #f4f4f4; /* Lighter grey background for cleaner look */
+  color: #333333; /* Dark grey text */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1rem;
+}
 
-// --- TfL Line Colours (Add more as needed) ---
-const lineColors = {
-    bakerloo: "#B36305",
-    central: "#E32017",
-    circle: "#FFD300",
-    district: "#007849",
-    "hammersmith-city": "#F4A9BE",
-    jubilee: "#A0A5A9",
-    metropolitan: "#9B0056",
-    northern: "#000000",
-    piccadilly: "#003688",
-    victoria: "#0098D4",
-    "waterloo-city": "#95CDBA",
-    dlr: "#00A4A7",
-    "london-overground": "#EE7C0E", // Note: Overground ID might be different - check API response if needed
-    overground: "#EE7C0E", // Add common variation
-    "elizabeth-line": "#6950a1",
-    tram: "#84B817",
-    // Add colours for any other lines/modes if needed
-    default: "#cccccc" // Default grey
-};
+/* --- Layout Containers --- */
+.site-header,
+.main-content,
+.site-footer {
+  width: 100%;
+  /* Set max-width for the main content including the list */
+  max-width: 650px;
+  /* Align content block to the left */
+  margin-left: 0;
+  margin-right: auto;
+  padding: 1rem;
+}
 
-// --- Functions ---
+.main-content {
+  padding-top: 0; /* Reduce top padding for main content */
+}
 
-/**
- * Fetches status data from the API endpoint.
- * @returns {Promise<Array>} A promise that resolves with the array of status data.
- */
-async function fetchStatusData() {
-  console.log("Fetching status from:", API_ENDPOINT);
-  // Show loading message only if container is empty (initial load)
-  if (!statusContainer.hasChildNodes() || statusContainer.textContent.trim() === "") {
-      statusContainer.innerHTML = '<p id="loading-message">Loading live status...</p>';
+/* --- Header Styling --- */
+.site-header {
+  background-color: #0019a8; /* TfL Blue */
+  color: #ffffff;
+  border-radius: 5px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  padding: 0.75rem 1rem;
+}
+
+.site-header h1 {
+  margin-bottom: 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+#last-updated {
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+/* --- Main Content Styling --- */
+.main-content h2 {
+  text-align: left; /* Align heading left */
+  margin-bottom: 1rem;
+  color: #333;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* --- Mode Selector Styling --- */
+.mode-selector {
+    margin-bottom: 1.5rem;
+    display: flex; /* Align label and select nicely */
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mode-selector label {
+    font-weight: 500;
+    white-space: nowrap; /* Prevent label wrapping */
+}
+
+#mode-select {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit; /* Use body font */
+    font-size: 1rem;
+    background-color: #fff;
+    flex-grow: 1; /* Allow dropdown to take available space */
+    max-width: 300px; /* Optional max width */
+    cursor: pointer;
+}
+
+/* --- Status List Layout & Styling --- */
+/* This replaces .status-grid */
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Space between list items */
+}
+
+/* Styling for each status item in the list */
+.status-card {
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  /* Apply the line color (set by JS) as a thick left border */
+  border-left: 10px solid var(--line-color, #ccc); /* Default grey if color fails */
+  align-items: stretch; /* Make inner content stretch height */
+  min-height: 55px; /* Ensure consistent height */
+  overflow: hidden; /* Clip corners */
+}
+
+/* Wrapper for line name and status text inside the card */
+.line-details {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 1rem; /* Adjust padding */
+    gap: 1rem; /* Space between name and status text */
+}
+
+.line-name {
+  font-weight: 700; /* Bolder line name */
+  font-size: 1.1em;
+  flex-shrink: 0;
+  margin-right: 0.5rem; /* Ensure space on smaller screens */
+}
+
+.line-status {
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap; /* Prevent status text wrapping */
+  /* Remove background/padding from status text itself - color only */
+}
+
+/* --- Status Text Specific Colors (Severity) --- */
+/* Applied directly to the .line-status span by JS */
+
+.status-good-service { color: #007849; } /* TfL Green */
+.status-minor-delays { color: #FFD300; /* TfL Yellow */ text-shadow: 0 0 1px #aaa; /* improve readability */}
+.status-severe-delays,
+.status-part-closure,
+.status-planned-closure,
+.status-closed,
+.status-suspended { color: #E32017; font-weight: 700; } /* TfL Red, bolder */
+.status-special-service { color: #00A4A7; } /* TfL DLR Teal */
+.status-unknown,
+.status-not-available { color: #757575; font-style: italic; } /* Grey */
+.status-parse-error { color: #E32017; font-style: italic; font-weight: 700;}
+
+/* --- Loading / Error Message Styling --- */
+#loading-message, .error-message {
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  padding: 2rem;
+  background-color: #fff; /* Give it a background */
+  border-radius: 4px;
+}
+.error-message {
+    color: #c00; /* Red error text */
+    font-weight: bold;
+    font-style: normal;
+}
+
+/* --- Footer Styling --- */
+.site-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  text-align: center;
+  font-size: 0.85em;
+  color: #666; /* Match other text */
+  border-top: 1px solid #e0e0e0;
+}
+
+/* --- Responsive Adjustments --- */
+/* List view is fairly responsive by default, minimal adjustments needed */
+/* Example: Slightly larger text on wider screens */
+@media (min-width: 768px) {
+  body {
+    font-size: 17px; /* Slightly larger base font */
   }
-
-  try {
-    const response = await fetch(API_ENDPOINT);
-    if (!response.ok) {
-      let errorMsg = `API request failed: ${response.status}`;
-      try {
-        const errorBody = await response.json();
-        errorMsg = errorBody.error || errorMsg;
-      } catch (e) {}
-      throw new Error(errorMsg);
-    }
-    const data = await response.json();
-    console.log("Full data received:", data);
-    return data;
-  } catch (error) {
-    console.error("Error fetching status data:", error);
-    throw error;
-  }
+   .site-header h1 {
+      font-size: 2rem;
+   }
+   .main-content h2 {
+      font-size: 1.75rem;
+   }
 }
-
-/**
- * Creates CSS class name for status text based on the status description.
- * @param {string} statusText - The status description (e.g., "Good Service").
- * @returns {string} CSS class for the status span.
- */
-function getStatusTextClass(statusText) {
-  const baseClass = (statusText || "unknown")
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-
-  // Prioritize finding specific classes, default otherwise
-  if (baseClass.includes("good-service")) return "status-good-service";
-  if (baseClass.includes("minor-delays")) return "status-minor-delays";
-  if (
-    baseClass.includes("severe-delays") ||
-    baseClass.includes("part-closure") ||
-    baseClass.includes("planned-closure") ||
-    baseClass.includes("closed") ||
-    baseClass.includes("suspended")
-  ) return "status-severe-delays"; // Group major issues
-  if (baseClass.includes("special-service")) return "status-special-service";
-  if (baseClass.includes("not-available")) return "status-not-available";
-  if (baseClass.includes("parse-error")) return "status-parse-error";
-  
-  return "status-unknown"; // Default class
-}
-
-
-/**
- * Renders the filtered status data onto the page.
- * @param {Array} filteredData - Array of status objects for the selected mode.
- */
-function renderStatuses(filteredData) {
-  // Clear previous content
-  statusContainer.innerHTML = "";
-
-  if (!filteredData || filteredData.length === 0) {
-    statusContainer.innerHTML = `<p>No status available for ${currentSelectedMode}.</p>`;
-    return;
-  }
-
-  filteredData.forEach((item) => {
-    // Create elements
-    const card = document.createElement("div");
-    const lineDetailsDiv = document.createElement("div"); // Wrapper for name/status
-    const lineNameSpan = document.createElement("span");
-    const statusSpan = document.createElement("span");
-
-    // Get line color - use line ID (often more consistent) if available, fallback to name
-    const lineIdForColor = item.line ? item.line.toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '-') : 'default';
-    const color = lineColors[lineIdForColor] || lineColors.default;
-    
-    // Get CSS class for status text
-    const statusClass = getStatusTextClass(item.status);
-
-    // Set classes, content, and style
-    card.classList.add("status-card");
-    // Apply line color using CSS variable for the ::before pseudo-element or border
-    card.style.setProperty('--line-color', color); 
-
-    lineDetailsDiv.classList.add("line-details");
-
-    lineNameSpan.classList.add("line-name");
-    lineNameSpan.textContent = item.line; // Use the display name
-
-    statusSpan.classList.add("line-status", statusClass); // Add status severity class for text color
-    statusSpan.textContent = item.status;
-
-    // Append elements
-    lineDetailsDiv.appendChild(lineNameSpan);
-    lineDetailsDiv.appendChild(statusSpan);
-    card.appendChild(lineDetailsDiv);
-    statusContainer.appendChild(card);
-  });
-}
-
-/**
- * Updates the timestamp display.
- */
-function updateTimestamp() {
-  const now = new Date();
-  const timeString = now.toLocaleTimeString("en-GB");
-  timestampSpan.textContent = timeString;
-}
-
-/**
- * Handles errors during the fetch/render process.
- * @param {Error} error - The error object.
- */
-function handleError(error) {
-    statusContainer.innerHTML = `<p class="error-message">Failed to load status: ${error.message}</p>`;
-    timestampSpan.textContent = "Error";
-}
-
-/**
- * Filters the full data based on the selected mode and renders it.
- */
-function displayFilteredStatus() {
-    currentSelectedMode = modeSelect.value;
-    console.log(`Filtering for mode: ${currentSelectedMode}`);
-    if (!fullStatusData || fullStatusData.length === 0) {
-        console.log("No data available to filter.");
-        renderStatuses([]); // Render empty state
-        return;
-    }
-    // Filter based on the 'mode' property returned by the updated Lambda
-    const filteredData = fullStatusData.filter(item => item.mode === currentSelectedMode);
-    renderStatuses(filteredData);
-}
-
-
-/**
- * Main function to load data and update the UI.
- */
-async function loadAndRenderStatus() {
-  try {
-    fullStatusData = await fetchStatusData(); // Fetch all data and store it
-    displayFilteredStatus(); // Filter and display based on current dropdown
-    updateTimestamp();
-  } catch (error) {
-    handleError(error);
-  }
-}
-
-// --- Event Listeners & Initial Load ---
-
-// Add event listener for dropdown changes
-modeSelect.addEventListener('change', displayFilteredStatus);
-
-// Perform initial load when the script runs
-loadAndRenderStatus();
-
-// Set up interval to refresh data periodically
-setInterval(loadAndRenderStatus, REFRESH_INTERVAL_MS);
