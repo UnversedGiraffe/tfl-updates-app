@@ -2,7 +2,7 @@
 const API_BASE_URL = "https://eu9oxde9zh.execute-api.eu-west-2.amazonaws.com/prod";
 const MODES_TO_FETCH = "tube,dlr,overground,elizabeth-line,tram";
 const API_ENDPOINT = `${API_BASE_URL}/modes/${MODES_TO_FETCH}/status`;
-const REFRESH_INTERVAL_MS = 60000;
+const REFRESH_INTERVAL_MS = 60000; // Refresh every 60 seconds
 
 // --- DOM Elements ---
 const statusContainer = document.getElementById("status-container");
@@ -28,8 +28,8 @@ const lineColors = {
     victoria: "#0098D4",
     "waterloo-city": "#95CDBA",
     dlr: "#00A4A7",
-    "london-overground": "#EE7C0E",
-    overground: "#EE7C0E", 
+    "london-overground": "#EE7C0E", // Note: Overground ID might be different - check API response if needed
+    overground: "#EE7C0E", // Add common variation
     "elizabeth-line": "#6950a1",
     tram: "#84B817",
     // Add colours for any other lines/modes if needed
@@ -166,16 +166,33 @@ function handleError(error) {
  * Filters the full data based on the selected mode and renders it.
  */
 function displayFilteredStatus() {
-    currentSelectedMode = modeSelect.value;
-    console.log(`Filtering for mode: ${currentSelectedMode}`);
-    if (!fullStatusData || fullStatusData.length === 0) {
-        console.log("No data available to filter.");
-        renderStatuses([]); // Render empty state
-        return;
-    }
-    // Filter based on the 'mode' property returned by the updated Lambda
-    const filteredData = fullStatusData.filter(item => item.mode === currentSelectedMode);
-    renderStatuses(filteredData);
+  currentSelectedMode = modeSelect.value; // e.g., "tube", "dlr"
+  console.log(`Filtering for mode: ${currentSelectedMode}`);
+
+  if (!fullStatusData || fullStatusData.length === 0) {
+      console.log("No data available to filter.");
+      renderStatuses([]); // Render empty state
+      return;
+  }
+
+  let filteredData = [];
+  // --- MODIFICATION START ---
+  if (currentSelectedMode === 'tube') {
+      // If 'Tube' is selected, include both 'tube' and 'elizabeth-line' modes
+      filteredData = fullStatusData.filter(item => 
+          item.mode === 'tube' || item.mode === 'elizabeth-line'
+      );
+      console.log(`Including elizabeth-line with tube. Filtered count: ${filteredData.length}`);
+  } else {
+      // For all other selections, filter normally by the selected mode
+      filteredData = fullStatusData.filter(item => 
+          item.mode === currentSelectedMode
+      );
+      console.log(`Filtered for ${currentSelectedMode}. Count: ${filteredData.length}`);
+  }
+  // --- MODIFICATION END ---
+
+  renderStatuses(filteredData);
 }
 
 
