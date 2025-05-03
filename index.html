@@ -18,27 +18,43 @@
         <div class="nav-container">
             <a href="#" class="nav-link active">Status Updates</a>
             <a href="#" class="nav-link">Plan a Journey</a>
-            <p id="last-updated">Last updated: <span id="timestamp">--:--:--</span></p>
         </div>
     </nav>
     <main class="main-content">
-        <h2>Current Status</h2>
+        <div class="dashboard-layout">
 
-        <div class="mode-tabs">
-            <button type="button" 
-                    class="tab-button active" 
-                    data-modes="tube,elizabeth-line,dlr,overground,tram"> 
-                Rail & Tram 
-            </button>
-            </div>
-        <div id="status-container" class="status-list">
-            <p id="loading-message">Loading live status...</p>
-            </div>
-    </main>
+            <div class="status-panel">
+                <h2>Current Status</h2>
+                <p id="last-updated">Last updated: <span id="timestamp">--:--:--</span></p>
+                <div class="mode-tabs">
+                    <button type="button" 
+                            class="tab-button active" 
+                            data-modes="tube,elizabeth-line,dlr,overground,tram"> 
+                        Rail & Tram 
+                    </button>
+                    </div>
+                <div id="status-container" class="status-list"> 
+                    <p id="loading-message">Loading live status...</p>
+                </div>
+            </div><div id="line-detail-container" class="details-panel">
+                <h2>Details</h2>
+                <div class="details-content">
+                    <p>Select a line from the list to view details.</p>
+                    </div>
+            </div></div></main>
 
     <footer class="site-footer">
         <p>Data sourced from TfL Unified API.</p>
     </footer>
+
+    <div id="detail-modal" class="modal-overlay" hidden> 
+        <div class="modal-content">
+            <button type="button" class="modal-close-btn" aria-label="Close details">&times;</button>
+            <div id="modal-details-content"> 
+                <h2>Line Details</h2> <p>Loading...</p>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js" defer></script>
 
