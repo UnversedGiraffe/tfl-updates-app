@@ -297,15 +297,15 @@ span.station-name-detail {
 }
 
 /* Interchange Icon Styling */
-.interchange-icon {
-  display: inline-block; /* Make sure it's inline-block */
-  vertical-align: middle; /* Align with text */
-  margin-left: 8px;
-  color: #0077AD; 
+/*.interchange-icon {
+/*  display: inline-block; /* Make sure it's inline-block */
+ /* vertical-align: middle; /* Align with text */
+  /*margin-left: 8px;
+  /*color: #0077AD; 
   font-weight: bold;
   font-size: 1.1em; 
   /* flex-shrink: 0; Remove as no longer in flex context */
-}
+/*}*/
 
 /*Zone Divider Styling*/
 .zone-divider {
@@ -465,6 +465,26 @@ span.station-name-detail {
 }
 
 /* --- END Modal Styling --- */
+
+/* --- ADD: Styling for Interchange Line Indicators --- */
+.interchange-indicators-container {
+  display: inline-block; /* Keep indicators on the same line */
+  margin-left: 8px;     /* Space after station name */
+  vertical-align: middle; /* Align vertically with text */
+  line-height: 1;       /* Prevent extra vertical space */
+}
+
+.interchange-line-indicator {
+  display: inline-block;      /* Allow setting size and margin */
+  width: 12px;                 /* Small size */
+  height: 12px;                /* Small size */
+  border-radius: 50%;         /* Make it a circle */
+  margin-right: 3px;          /* Space between dots */
+  vertical-align: middle;     /* Align dots with each other */
+  border: 1px solid #eee;     /* Optional subtle border */
+  box-shadow: 0 0 1px rgba(0,0,0,0.2); /* Optional subtle shadow */
+}
+/* --- END Interchange Indicator Styling --- */
 
 /* --- Footer Styling --- */
 .site-footer {
