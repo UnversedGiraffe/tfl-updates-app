@@ -16,6 +16,11 @@ const modalOverlay = document.getElementById('detail-modal');
 const modalDetailsContent = document.getElementById('modal-details-content');
 const modalCloseBtn = document.querySelector('.modal-close-btn'); // Use querySelector for class
 
+const lineSearchInput = document.getElementById('line-search-input');
+
+const reverseBtnDesktop = document.getElementById('reverse-direction-btn');
+const reverseBtnModal = document.getElementById('reverse-direction-btn-modal');
+
 // --- Global State ---
 let fullStatusData = []; // Store the last full fetch results
 
@@ -28,6 +33,7 @@ const lineColors = {
     'hammersmith-city': "#F4A9BE",
     jubilee: "#A0A5A9",
     metropolitan: "#9B0056",
+    mildmay: "#0077AD",
     northern: "#000000",
     piccadilly: "#003688",
     victoria: "#0098D4",
@@ -35,7 +41,12 @@ const lineColors = {
     dlr: "#00A4A7",
     'london-overground': "#EE7C0E",
     overground: "#EE7C0E",
-    'elizabeth-line': "#6950a1",
+    liberty: "#5D6061",
+    lioness: "#FAA61A",
+    suffragette: "#5BBD72",
+    weaver: "#823A62",
+    windrush: "#ED1B00",
+    'elizabeth': "#60399E",
     tram: "#84B817",
     default: "#cccccc" // Default grey
 };
@@ -161,54 +172,74 @@ function updateTimestamp() {
 }
 
 /**
- * Handles errors during the fetch/render process.
+ * Handles errors during fetch/render process, displaying message in target.
  * @param {Error} error - The error object.
+ * @param {HTMLElement} [targetElement=statusContainer] - The element to display the error in.
  */
-function handleError(error) {
-    if (statusContainer) {
-        statusContainer.innerHTML = `<p class="error-message">Failed to load status: ${error.message}</p>`;
-    }
-    if (timestampSpan) {
-        timestampSpan.textContent = "Error";
-    }
+function handleError(error, targetElement = statusContainer) {
+  console.error("handleError called:", error, "Target:", targetElement); // Log details
+  
+  // Determine correct prefix based on where the error should be shown
+  const messagePrefix = (targetElement === statusContainer) ? "Failed to load status: " : "Could not load details: ";
+  // Construct error message using template literal (backticks)
+  const errorMessage = `${messagePrefix}${error ? error.message : 'Unknown error'}`; // Add safety check for error object
+
+  if (targetElement) {
+       // Assign the HTML string using template literal (backticks)
+       targetElement.innerHTML = `<p class="error-message">${errorMessage}</p>`; 
+  } else {
+      // Fallback if no target somehow
+       console.error("Error handler called without a target element!");
+       if (statusContainer) { 
+            // Assign the HTML string using template literal (backticks)
+            statusContainer.innerHTML = `<p class="error-message">${errorMessage}</p>`;
+       }
+  }
+  // Update timestamp only on general status load failure
+  if (targetElement === statusContainer && timestampSpan) { 
+      timestampSpan.textContent = "Error"; 
+  }
 }
 
 /**
- * Filters the stored full data based on the currently active tab and renders it.
+ * Filters the stored full data based on the currently active tab AND search input, then renders it.
  */
 function displayStatusForActiveTab() {
-    if (!modeTabsContainer) {
-        console.warn("Tab container not found, rendering all data.");
-        renderStatuses(fullStatusData || []);
-        return;
-    }
+  if (!modeTabsContainer || !statusContainer || !lineSearchInput) { 
+      console.error("Required elements not found for filtering/rendering.");
+      return; 
+  }
 
-    const activeButton = modeTabsContainer.querySelector('.tab-button.active');
-    if (!activeButton) {
-        console.error("No active tab button found.");
-        renderStatuses([]);
-        return;
-    }
+  // --- Filter by Active Tab ---
+  const activeButton = modeTabsContainer.querySelector('.tab-button.active');
+  if (!activeButton) { renderStatuses([]); return; } // Should have an active tab
 
-    const modesToShowStr = activeButton.dataset.modes;
-    if (typeof modesToShowStr !== 'string') {
-         console.error("Active tab button missing valid data-modes attribute.");
-         renderStatuses([]);
-         return;
-    }
+  const modesToShowStr = activeButton.dataset.modes;
+  if (typeof modesToShowStr !== 'string') { renderStatuses([]); return; }
 
-    const modesToShowArr = modesToShowStr.split(',');
-    console.log(`Filtering for active tab modes: ${modesToShowArr.join(', ')}`);
+  const modesToShowArr = modesToShowStr.split(',');
+  console.log(`Filtering for active tab modes: ${modesToShowArr.join(', ')}`);
 
-    if (!fullStatusData || fullStatusData.length === 0) {
-        console.log("No data available to filter.");
-        renderStatuses([]);
-        return;
-    }
+  let tabFilteredData = [];
+  if (fullStatusData && fullStatusData.length > 0) {
+      tabFilteredData = fullStatusData.filter(item => 
+          item.mode && modesToShowArr.includes(item.mode)
+      );
+  }
 
-    // Filter based on the 'mode' property returned by the Lambda
-    const filteredData = fullStatusData.filter(item => item.mode && modesToShowArr.includes(item.mode)); // Check item.mode exists
-    renderStatuses(filteredData);
+  // --- Filter by Search Term ---
+  const searchTerm = lineSearchInput.value.trim().toLowerCase();
+  let finalFilteredData = tabFilteredData; // Start with tab results
+
+  if (searchTerm) { // Only apply search filter if there's a search term
+      finalFilteredData = tabFilteredData.filter(item => 
+          item.line && item.line.toLowerCase().includes(searchTerm) // Check if line name includes term
+      );
+      console.log(`Additionally filtering for search term: "${searchTerm}". Count: ${finalFilteredData.length}`);
+  }
+
+  // --- Render the final list ---
+  renderStatuses(finalFilteredData); 
 }
 
 
@@ -245,77 +276,146 @@ function handleTabClick(event) {
 
 /**
  * Handles clicks on the status list container (delegated).
- * Fetches details for the clicked line and displays them.
+ * Fetches details and displays in panel (desktop) or modal (mobile).
  * @param {Event} event - The click event object.
  */
-async function handleLineClick(event) { 
+async function handleLineClick(event) {
   const clickedCard = event.target.closest('.status-card');
-  
-  if (clickedCard && clickedCard.dataset.lineId) {
-      const lineId = clickedCard.dataset.lineId;
-      console.log("Clicked Line ID:", lineId); 
+  if (!clickedCard || !clickedCard.dataset.lineId) return;
 
-      // Highlight selected card
-      document.querySelectorAll('.status-card.selected').forEach(el => el.classList.remove('selected'));
-      clickedCard.classList.add('selected'); 
+  const lineId = clickedCard.dataset.lineId;
+  console.log("Clicked Line ID:", lineId);
 
-      // --- Check screen width ---
-      const isDesktop = window.matchMedia("(min-width: 900px)").matches;
+  document.querySelectorAll('.status-card.selected').forEach(el => el.classList.remove('selected'));
+  clickedCard.classList.add('selected');
 
-      let targetContentElement;
-      if (isDesktop) {
-          // Desktop: Use the panel
-          const detailsPanel = document.getElementById('line-detail-container');
-          targetContentElement = detailsPanel?.querySelector('.details-content'); 
-           if (!targetContentElement) { console.error("Details panel content area not found!"); return; }
-           // Ensure panel is visible (CSS should handle this via media query)
-           // detailsPanel.style.display = 'flex'; // Probably not needed if CSS is correct
-      } else {
-          // Mobile: Use the modal
-           targetContentElement = modalDetailsContent;
-           if (!targetContentElement || !modalOverlay) { console.error("Modal elements not found!"); return; }
-           modalOverlay.hidden = false; // Show the modal overlay
+  const isDesktop = window.matchMedia("(min-width: 900px)").matches;
+  let targetPanelElement; 
+  let targetContentElement; 
+  let currentButton;      
+
+  if (isDesktop) {
+      targetPanelElement = document.getElementById('line-detail-container');
+      targetContentElement = targetPanelElement?.querySelector('.details-content');
+      currentButton = reverseBtnDesktop; 
+      if (!targetPanelElement || !targetContentElement) { console.error("Desktop details panel elements not found!"); return; }
+      targetPanelElement.style.display = 'flex';
+  } else {
+      targetPanelElement = modalOverlay;
+      targetContentElement = modalDetailsContent;
+      currentButton = reverseBtnModal;
+      if (!targetPanelElement || !targetContentElement) { console.error("Modal elements not found!"); return; }
+      targetPanelElement.hidden = false; 
+  }
+
+  // Disable button before fetch
+  if (currentButton) currentButton.disabled = true; 
+  targetContentElement.innerHTML = '<p>Loading details...</p>'; 
+
+  const detailUrl = `<span class="math-inline">\{API\_BASE\_URL\}/lines/</span>{lineId}/details`;
+  console.log("Fetching details from:", detailUrl);
+
+  try {
+      const response = await fetch(detailUrl);
+      if (!response.ok) {
+          let errorMsg = `API request failed: ${response.status}`;
+          try { const errorBody = await response.json(); errorMsg = errorBody.error || errorMsg; } catch (e) {}
+          throw new Error(errorMsg);
+      }
+      const detailData = await response.json();
+      console.log("Received details:", detailData);
+
+      // Store state needed for reverse button handler BEFORE rendering
+      targetContentElement.dataset.lineId = lineId; 
+      targetContentElement.dataset.direction = detailData.direction || 'outbound'; 
+
+      renderLineDetails(detailData, targetContentElement); 
+
+      // Enable button only AFTER successful render
+      if (currentButton) {
+          currentButton.disabled = false;
       }
 
-      // Show loading state in the target container
-      targetContentElement.innerHTML = '<p>Loading details...</p>'; 
-      
-      // Construct URL and Fetch
-      const detailUrl = `${API_BASE_URL}/lines/${lineId}/details`;
-      console.log("Fetching details from:", detailUrl);
-
-      try {
-          const response = await fetch(detailUrl);
-          if (!response.ok) {
-              let errorMsg = `API request failed: ${response.status}`;
-              try { const errorBody = await response.json(); errorMsg = errorBody.error || errorMsg; } catch (e) {}
-              throw new Error(errorMsg);
-          }
-          const detailData = await response.json();
-          console.log("Received details:", detailData);
-
-          // Render details into the correct container (panel or modal)
-          renderLineDetails(detailData, targetContentElement);
-
-      } catch (error) {
-          console.error(`Error fetching details for ${lineId}:`, error);
-          // Show error in the correct container
-          targetContentElement.innerHTML = `<p class="error-message">Could not load details: ${error.message}</p>`;
-      }
+  } catch (error) {
+      // --- ADDED LOGGING IN CATCH BLOCK ---
+      console.error(`Error fetching details inside handleLineClick for ${lineId}:`, error);
+      console.log("Target element passed to handleError:", targetContentElement);
+      // --- END ADDED LOGGING ---
+      handleError(error, targetContentElement); // Pass specific target
   }
 }
 
-// --- ADD Function to Close Modal ---
+/**
+ * Closes the Modal and disables its button.
+ */
 function closeModal() {
   if(modalOverlay) {
-      modalOverlay.hidden = true; // Hide the modal
+      modalOverlay.hidden = true;
+  }
+  // De-select card
+  document.querySelectorAll('.status-card.selected').forEach(el => el.classList.remove('selected'));
+  // Disable modal button when closing
+  if (reverseBtnModal) {
+      reverseBtnModal.disabled = true;
+  }
+}
+
+/**
+ * NEW: Handles clicks on the "Switch Direction" buttons.
+ * @param {Event} event - The click event object.
+ */
+async function handleReverseDirectionClick(event) {
+  const clickedButton = event.target; // The button element that was clicked
+  // Determine if we are in the modal or the panel to find the correct content container
+  const targetContentElement = clickedButton.closest('.details-content') || clickedButton.closest('#modal-details-content');
+  
+  if (!targetContentElement || !targetContentElement.dataset.lineId || !targetContentElement.dataset.direction) {
+      console.error("Could not find lineId or current direction from target container's dataset.");
+      return;
+  }
+
+  const lineId = targetContentElement.dataset.lineId;
+  const currentDirection = targetContentElement.dataset.direction;
+  const newDirection = currentDirection === 'outbound' ? 'inbound' : 'outbound';
+
+  console.log(`Reversing direction for ${lineId} from ${currentDirection} to ${newDirection}`);
+
+  // Disable button and show loading
+  clickedButton.disabled = true;
+  targetContentElement.innerHTML = `<p>Loading ${newDirection} route...</p>`;
+
+  const detailUrl = `${API_BASE_URL}/lines/${lineId}/details?direction=${newDirection}`;
+  console.log("Fetching details from:", detailUrl);
+
+  try {
+      const response = await fetch(detailUrl);
+      if (!response.ok) {
+          let errorMsg = `API request failed: ${response.status}`;
+          try { const errorBody = await response.json(); errorMsg = errorBody.error || errorMsg; } catch (e) {}
+          throw new Error(errorMsg);
+      }
+      const detailData = await response.json();
+      console.log("Received reversed details:", detailData);
+
+      // Update the stored direction state
+      targetContentElement.dataset.direction = detailData.direction || newDirection;
+
+      // Re-render the details
+      renderLineDetails(detailData, targetContentElement);
+
+  } catch (error) {
+      console.error(`Error fetching reversed details for ${lineId}:`, error);
+      handleError(error, targetContentElement); // Show error in the details container
+  } finally {
+      // Re-enable the button regardless of success or failure (unless error indicates permanent issue)
+      clickedButton.disabled = false; 
   }
 }
 
 // --- Add Event Listeners for Modal ---
 if (modalCloseBtn) {
   modalCloseBtn.addEventListener('click', closeModal);
-}
+} else { console.warn("Modal close button not found!"); }
 
 // Optional: Close modal if user clicks overlay background
 if (modalOverlay) {
@@ -328,69 +428,129 @@ if (modalOverlay) {
 }
 
 /**
- * Render details into the specified container.
+ * Renders the detailed data into the specified container.
+ * Creates structure for CSS to style as vertical line diagram.
  * @param {object} data - The detailed data object from the backend.
  * @param {HTMLElement} container - The HTML element to render content into.
  */
 function renderLineDetails(data, container) {
   container.innerHTML = ''; // Clear loading/previous content
-
   if (!data) {
       container.innerHTML = '<p>No details available.</p>';
       return;
   }
 
-  // Header with Line Name and Status (use line color?)
+  // --- Render Header ---
   const detailHeader = document.createElement('div');
-  detailHeader.classList.add('detail-header'); // Add class for potential styling
+  detailHeader.classList.add('detail-header');
   const lineIdForColor = (data.id || data.name || 'default').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '-');
   const color = lineColors[lineIdForColor] || lineColors.default;
-  detailHeader.style.borderLeft = `6px solid ${color}`; // Add color indicator
+  detailHeader.style.borderLeft = `6px solid ${color}`; // Keep header color indicator
   detailHeader.style.paddingLeft = '10px';
   detailHeader.style.marginBottom = '1rem';
-
-  const headerText = document.createElement('h3'); // Use H3 for details title
+  const headerText = document.createElement('h3');
   headerText.textContent = `${data.name || data.id} - ${data.status || 'Status Unknown'}`;
   detailHeader.appendChild(headerText);
   container.appendChild(detailHeader);
 
-  // Disruption Reason (if any)
+  // --- Render Disruption Reason ---
   if (data.reason) {
       const reasonPara = document.createElement('p');
-      reasonPara.classList.add('disruption-reason'); // Add class for styling
-      reasonPara.style.fontWeight = 'bold'; // Make reason stand out
-      reasonPara.style.marginBottom = '1rem';
+      reasonPara.classList.add('disruption-reason');
+      //reasonPara.style.fontWeight = 'normal'; // Keep basic style
+      //reasonPara.style.marginBottom = '1rem'; // Keep basic style
       reasonPara.textContent = data.reason;
       container.appendChild(reasonPara);
   }
 
-  // Stations List
+  // --- Render Ordered Stations List ---
   if (data.stations && data.stations.length > 0) {
-      const stationsHeader = document.createElement('h4'); // Use H4 for sub-section
-      stationsHeader.textContent = 'Stations Served:';
-      stationsHeader.style.marginBottom = '0.5rem';
+      const stationsHeader = document.createElement('h4');
+      stationsHeader.textContent = 'Stations (Route Order):';
+      stationsHeader.style.marginBottom = '0.5rem'; // Keep basic style
       container.appendChild(stationsHeader);
 
       const stationList = document.createElement('ul');
-      stationList.classList.add('station-list'); // Add class for styling
-      stationList.style.paddingLeft = '20px'; // Indent list
-      stationList.style.maxHeight = '300px'; // Limit height and make scrollable
-      stationList.style.overflowY = 'auto';
+      stationList.classList.add('station-sequence-list');
+      // --- Set CSS Variable for line color on the list itself ---
+      stationList.style.setProperty('--line-color', color);
+      // --- Remove previous inline styles - CSS file will handle these ---
+      // stationList.style.paddingLeft = '0'; 
+      // stationList.style.listStyle = 'none'; 
+      // stationList.style.maxHeight = 'calc(100% - 120px)'; 
+      // stationList.style.overflowY = 'auto'; 
 
-      data.stations.forEach(stationName => {
+      let currentZone = null;
+
+      data.stations.forEach(station => {
+          // Zone Separator Logic
+          if (station.zone && station.zone !== currentZone) {
+              currentZone = station.zone;
+              const zoneDivider = document.createElement('li');
+              zoneDivider.classList.add('zone-divider');
+              zoneDivider.textContent = `Zone ${currentZone}`;
+              // --- Inline styles removed - Handled by CSS ---
+              stationList.appendChild(zoneDivider);
+          }
+
+          // Station List Item
           const li = document.createElement('li');
-          li.textContent = stationName;
+          li.classList.add('station-item');
+
+          const stationNameSpan = document.createElement('span');
+          stationNameSpan.classList.add('station-name-detail');
+          stationNameSpan.textContent = station.name || 'Unknown Station';
+          if (station.id) {
+              stationNameSpan.dataset.naptanId = station.id;
+              // --- Inline style for cursor removed - Handled by CSS ---
+              stationNameSpan.title = `View details for ${station.name}`;
+          }
+          li.appendChild(stationNameSpan);
+
+          // Interchange Indicator Logic
+          if (station.lines && Array.isArray(station.lines) && station.lines.length > 1) {
+              const interchangeSpan = document.createElement('span');
+              interchangeSpan.classList.add('interchange-icon');
+              interchangeSpan.textContent = ' ⇌';
+              const interchangeTitle = `Interchanges: ${station.lines.map(l => typeof l === 'object' ? l.id || l.name : l).join(', ')}`;
+              interchangeSpan.title = interchangeTitle;
+               // --- Inline styles removed - Handled by CSS ---
+              li.appendChild(interchangeSpan);
+          }
+
           stationList.appendChild(li);
       });
       container.appendChild(stationList);
   } else {
-      const noStationsPara = document.createElement('p');
-      noStationsPara.textContent = 'Station information not available.';
-      container.appendChild(noStationsPara);
+     // --- No Stations Logic (keep as is) ---
+     const noStationsPara = document.createElement('p');
+     if (data.status && data.status !== "Status Fetch Error" && data.status !== "Status Unavailable") {
+          noStationsPara.textContent = 'Route sequence information currently unavailable for this line.';
+     } else {
+          noStationsPara.textContent = 'Station information not available.';
+     }
+     container.appendChild(noStationsPara);
   }
 }
 
 // --- Event Listeners & Initial Load ---
+
+if (reverseBtnDesktop) {
+  reverseBtnDesktop.addEventListener('click', handleReverseDirectionClick);
+} else { console.warn("Desktop reverse direction button not found!"); }
+
+if (reverseBtnModal) {
+  reverseBtnModal.addEventListener('click', handleReverseDirectionClick);
+} else { console.warn("Modal reverse direction button not found!"); }
+
+// --- ADD NEW LISTENER for Search Input ---
+if (lineSearchInput) {
+  // Use 'input' event to trigger on every keystroke/change
+  lineSearchInput.addEventListener('input', displayStatusForActiveTab); 
+} else {
+  console.error("Line search input not found!");
+}
+// --- END ADDED LISTENER ---
 
 // Listener for Tab clicks
 if (modeTabsContainer) {
