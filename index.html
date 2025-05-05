@@ -29,19 +29,37 @@
                 <div class="mode-tabs">
                     <button type="button" 
                             class="tab-button active" 
-                            data-modes="tube,elizabeth-line,dlr,overground,tram"> 
-                        Rail & Tram 
+                            data-modes="tube,elizabeth-line"> 
+                        Tube & Eliz. line
                     </button>
-                    </div>
+                    <button type="button" 
+                            class="tab-button" 
+                            data-modes="overground,london-overground,liberty,lioness,mildmay,suffragette,weaver,windrush"> 
+                        Overground
+                    </button>
+                    <button type="button" 
+                            class="tab-button" 
+                            data-modes="dlr,tram"> 
+                        DLR & Tram
+                    </button>
+                </div>
+                <div class="search-container">
+                    <input type="search" id="line-search-input" placeholder="Filter lines by name...">
+                </div>
                 <div id="status-container" class="status-list"> 
                     <p id="loading-message">Loading live status...</p>
                 </div>
-            </div><div id="line-detail-container" class="details-panel">
+            </div>
+            <div id="line-detail-container" class="details-panel">
                 <h2>Details</h2>
-                <div class="details-content">
-                    <p>Select a line from the list to view details.</p>
-                    </div>
-            </div></div></main>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4>Stations (Route Order):</h4> 
+                    <button type="button" id="reverse-direction-btn" class="detail-button" disabled>Switch Direction</button>
+                </div>
+                <div class="details-content"> 
+                    <p>Select a line from the list to view details.</p> </div>
+            </div>
+            </main>
 
     <footer class="site-footer">
         <p>Data sourced from TfL Unified API.</p>
@@ -50,9 +68,13 @@
     <div id="detail-modal" class="modal-overlay" hidden> 
         <div class="modal-content">
             <button type="button" class="modal-close-btn" aria-label="Close details">&times;</button>
-            <div id="modal-details-content"> 
-                <h2>Line Details</h2> <p>Loading...</p>
+            <h2>Line Details</h2>
+             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h4>Stations (Route Order):</h4> 
+                <button type="button" id="reverse-direction-btn-modal" class="detail-button" disabled>Switch Direction</button> 
             </div>
+             <div id="modal-details-content"> 
+                <p>Loading...</p> </div>
         </div>
     </div>
 
