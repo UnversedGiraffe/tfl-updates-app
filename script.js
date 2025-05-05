@@ -346,18 +346,18 @@ async function handleLineClick(event) {
 }
 
 /**
- * Closes the Modal and disables its button.
+ * --- MODIFIED: Closes the Modal and disables its button. ---
  */
 function closeModal() {
-  if(modalOverlay) {
-      modalOverlay.hidden = true;
-  }
-  // De-select card
-  document.querySelectorAll('.status-card.selected').forEach(el => el.classList.remove('selected'));
-  // Disable modal button when closing
-  if (reverseBtnModal) {
-      reverseBtnModal.disabled = true;
-  }
+    if(modalOverlay) {
+        modalOverlay.hidden = true;
+    }
+    // De-select card
+    document.querySelectorAll('.status-card.selected').forEach(el => el.classList.remove('selected'));
+    // Disable modal button when closing
+    if (reverseBtnModal) {
+        reverseBtnModal.disabled = true;
+    }
 }
 
 /**
@@ -408,6 +408,67 @@ async function handleReverseDirectionClick(event) {
       handleError(error, targetContentElement); // Show error in the details container
   } finally {
       // Re-enable the button regardless of success or failure (unless error indicates permanent issue)
+      clickedButton.disabled = false; 
+  }
+}
+
+/**
+ * --- NEW FUNCTION: Handles clicks on the "Switch Direction" buttons. ---
+ * Fetches and displays the opposite route sequence.
+ * @param {Event} event - The click event object.
+ */
+async function handleReverseDirectionClick(event) {
+  const clickedButton = event.target; // The button element that was clicked
+  // Find the relevant content container associated with the button clicked
+  const isModalButton = clickedButton.id === 'reverse-direction-btn-modal';
+  const targetContentElement = isModalButton 
+      ? modalDetailsContent 
+      : document.querySelector('#line-detail-container .details-content');
+
+  if (!targetContentElement) { console.error("Cannot find target content element for reverse direction."); return; }
+  
+  // Retrieve state stored by handleLineClick
+  const lineId = targetContentElement.dataset.lineId;
+  const currentDirection = targetContentElement.dataset.direction;
+
+  if (!lineId || !currentDirection) {
+      console.error("Missing lineId or direction state on target container's dataset.");
+      handleError(new Error("Cannot determine current line or direction to reverse."), targetContentElement);
+      return;
+  }
+
+  // Determine the direction to fetch
+  const newDirection = currentDirection === 'outbound' ? 'inbound' : 'outbound';
+  console.log(`Reversing direction for ${lineId} from ${currentDirection} to ${newDirection}`);
+
+  clickedButton.disabled = true; // Disable button during fetch
+  targetContentElement.innerHTML = `<p>Loading ${newDirection} route...</p>`; // Show loading in details area
+
+  // Construct URL with direction parameter
+  const detailUrl = `${API_BASE_URL}/lines/${lineId}/details?direction=${newDirection}`;
+  console.log("Fetching reversed details from:", detailUrl);
+
+  try {
+      const response = await fetch(detailUrl);
+      if (!response.ok) {
+          let errorMsg = `API request failed: ${response.status}`;
+          try { const errorBody = await response.json(); errorMsg = errorBody.error || errorMsg; } catch (e) {}
+          throw new Error(errorMsg);
+      }
+      const detailData = await response.json();
+      console.log("Received reversed details:", detailData);
+
+      // Update the stored direction state on the container
+      targetContentElement.dataset.direction = detailData.direction || newDirection;
+
+      // Re-render the details with the new data
+      renderLineDetails(detailData, targetContentElement);
+
+  } catch (error) {
+      console.error(`Error fetching reversed details for ${lineId}:`, error);
+      handleError(error, targetContentElement); // Show error in the details container
+  } finally {
+      // Re-enable the button once done (in finally block)
       clickedButton.disabled = false; 
   }
 }
