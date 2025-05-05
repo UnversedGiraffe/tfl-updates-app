@@ -489,8 +489,10 @@ if (modalOverlay) {
 }
 
 /**
- * Renders the detailed data into the specified container.
- * Creates structure for CSS to style as vertical line diagram.
+ * Renders the detailed data into the specified container (panel OR modal).
+ * Creates structure using nested divs within list items for better alignment control.
+ * Creates dedicated <li> for zone dividers.
+ * Sets --line-color CSS variable for the list.
  * @param {object} data - The detailed data object from the backend.
  * @param {HTMLElement} container - The HTML element to render content into.
  */
@@ -501,12 +503,12 @@ function renderLineDetails(data, container) {
       return;
   }
 
-  // --- Render Header ---
+  // --- Render Header --- (Keep as is)
   const detailHeader = document.createElement('div');
   detailHeader.classList.add('detail-header');
   const lineIdForColor = (data.id || data.name || 'default').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '-');
   const color = lineColors[lineIdForColor] || lineColors.default;
-  detailHeader.style.borderLeft = `6px solid ${color}`; // Keep header color indicator
+  detailHeader.style.borderLeft = `6px solid ${color}`;
   detailHeader.style.paddingLeft = '10px';
   detailHeader.style.marginBottom = '1rem';
   const headerText = document.createElement('h3');
@@ -514,12 +516,11 @@ function renderLineDetails(data, container) {
   detailHeader.appendChild(headerText);
   container.appendChild(detailHeader);
 
-  // --- Render Disruption Reason ---
+  // --- Render Disruption Reason --- (Keep as is)
   if (data.reason) {
       const reasonPara = document.createElement('p');
       reasonPara.classList.add('disruption-reason');
-      //reasonPara.style.fontWeight = 'normal'; // Keep basic style
-      //reasonPara.style.marginBottom = '1rem'; // Keep basic style
+      // Style using CSS class '.disruption-reason'
       reasonPara.textContent = data.reason;
       container.appendChild(reasonPara);
   }
@@ -527,63 +528,86 @@ function renderLineDetails(data, container) {
   // --- Render Ordered Stations List ---
   if (data.stations && data.stations.length > 0) {
       const stationsHeader = document.createElement('h4');
-      stationsHeader.textContent = 'Stations (Route Order):';
-      stationsHeader.style.marginBottom = '0.5rem'; // Keep basic style
+      stationsHeader.textContent = 'Stations';
+      // Style using CSS: .details-panel h4, #modal-details-content h4 { margin-bottom: 0.5rem; }
       container.appendChild(stationsHeader);
 
       const stationList = document.createElement('ul');
       stationList.classList.add('station-sequence-list');
-      // --- Set CSS Variable for line color on the list itself ---
+      // Set CSS Variable for line color on the list itself (for ::before line & markers)
       stationList.style.setProperty('--line-color', color);
-      // --- Remove previous inline styles - CSS file will handle these ---
-      // stationList.style.paddingLeft = '0'; 
-      // stationList.style.listStyle = 'none'; 
-      // stationList.style.maxHeight = 'calc(100% - 120px)'; 
-      // stationList.style.overflowY = 'auto'; 
 
-      let currentZone = null;
+      let currentZone = null; // Track zone changes
 
+      // --- Loop through stations to create list items ---
       data.stations.forEach(station => {
-          // Zone Separator Logic
+          // --- Add Zone Divider LI if zone changed (Reverted Logic) ---
           if (station.zone && station.zone !== currentZone) {
               currentZone = station.zone;
               const zoneDivider = document.createElement('li');
               zoneDivider.classList.add('zone-divider');
               zoneDivider.textContent = `Zone ${currentZone}`;
-              // --- Inline styles removed - Handled by CSS ---
-              stationList.appendChild(zoneDivider);
+              // Style using .zone-divider CSS rule (from response #199)
+              stationList.appendChild(zoneDivider); // Add divider LI first
           }
+          // --- End Zone Logic ---
 
-          // Station List Item
+          // --- Create Station LI (Flex Container) ---
           const li = document.createElement('li');
-          li.classList.add('station-item');
+          li.classList.add('station-item'); // Should have display: flex in CSS
 
+          // --- NEW: Graphic Container (Flex Item 1) ---
+          const graphicContainer = document.createElement('div');
+          graphicContainer.classList.add('station-graphic');
+          // Circle marker will be attached via CSS .station-graphic::before
+          li.appendChild(graphicContainer);
+          // --- END NEW ---
+
+          // --- NEW: Text Container (Flex Item 2) ---
+          const textContainer = document.createElement('div');
+          textContainer.classList.add('station-text');
+
+          // Station Name Span (inside text container)
           const stationNameSpan = document.createElement('span');
           stationNameSpan.classList.add('station-name-detail');
           stationNameSpan.textContent = station.name || 'Unknown Station';
-          if (station.id) {
+          if (station.id) { // station.id is the naptanId
               stationNameSpan.dataset.naptanId = station.id;
-              // --- Inline style for cursor removed - Handled by CSS ---
               stationNameSpan.title = `View details for ${station.name}`;
+              // Style cursor via CSS: .station-name-detail { cursor: pointer; }
           }
-          li.appendChild(stationNameSpan);
+          textContainer.appendChild(stationNameSpan);
 
-          // Interchange Indicator Logic
+          // Interchange Indicator Logic (inside text container)
           if (station.lines && Array.isArray(station.lines) && station.lines.length > 1) {
-              const interchangeSpan = document.createElement('span');
-              interchangeSpan.classList.add('interchange-icon');
-              interchangeSpan.textContent = ' ⇌';
-              const interchangeTitle = `Interchanges: ${station.lines.map(l => typeof l === 'object' ? l.id || l.name : l).join(', ')}`;
-              interchangeSpan.title = interchangeTitle;
-               // --- Inline styles removed - Handled by CSS ---
-              li.appendChild(interchangeSpan);
-          }
+              const indicatorsContainer = document.createElement('span'); // Container for icons
+              indicatorsContainer.classList.add('interchange-indicators-container');
 
-          stationList.appendChild(li);
-      });
-      container.appendChild(stationList);
+              station.lines.forEach(lineId => { // Inner loop for indicator spans
+                  if (lineId && data.id && lineId.toLowerCase() === data.id.toLowerCase()) {
+                    return; // Skip this line, don't create an indicator for it
+                  }
+                  const interchangeLineIdKey = (lineId || 'default').toLowerCase().replace(/&/g, 'and').replace(/\s+/g, '-');
+                  const interchangeColor = lineColors[interchangeLineIdKey] || lineColors.default;
+                  const indicator = document.createElement('span');
+                  indicator.classList.add('interchange-line-indicator');
+                  indicator.style.backgroundColor = interchangeColor; // Use background color for dot
+                  indicator.title = lineId; // Tooltip shows line ID
+                  indicatorsContainer.appendChild(indicator);
+              });
+              textContainer.appendChild(indicatorsContainer); // Append indicators container
+          }
+          li.appendChild(textContainer); // Add text container to li
+          // --- END NEW ---
+
+          stationList.appendChild(li); // Add the complete station li
+
+      }); // --- End of data.stations.forEach loop ---
+
+      container.appendChild(stationList); // Add the populated list to the main container
+
   } else {
-     // --- No Stations Logic (keep as is) ---
+     // --- No Stations Logic ---
      const noStationsPara = document.createElement('p');
      if (data.status && data.status !== "Status Fetch Error" && data.status !== "Status Unavailable") {
           noStationsPara.textContent = 'Route sequence information currently unavailable for this line.';
@@ -592,6 +616,7 @@ function renderLineDetails(data, container) {
      }
      container.appendChild(noStationsPara);
   }
+  // --- End Stations List Section ---
 }
 
 // --- Event Listeners & Initial Load ---
