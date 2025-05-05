@@ -177,28 +177,28 @@ function updateTimestamp() {
  * @param {HTMLElement} [targetElement=statusContainer] - The element to display the error in.
  */
 function handleError(error, targetElement = statusContainer) {
-  console.error("handleError called:", error, "Target:", targetElement); // Log details
-  
-  // Determine correct prefix based on where the error should be shown
-  const messagePrefix = (targetElement === statusContainer) ? "Failed to load status: " : "Could not load details: ";
-  // Construct error message using template literal (backticks)
-  const errorMessage = `${messagePrefix}${error ? error.message : 'Unknown error'}`; // Add safety check for error object
+    console.error("handleError called:", error, "Target:", targetElement); // Log details
+    
+    // Determine correct prefix based on where the error should be shown
+    const messagePrefix = (targetElement === statusContainer) ? "Failed to load status: " : "Could not load details: ";
+    // Construct error message using template literal (backticks)
+    const errorMessage = `${messagePrefix}${error ? error.message : 'Unknown error'}`; // Add safety check for error object
 
-  if (targetElement) {
-       // Assign the HTML string using template literal (backticks)
-       targetElement.innerHTML = `<p class="error-message">${errorMessage}</p>`; 
-  } else {
-      // Fallback if no target somehow
-       console.error("Error handler called without a target element!");
-       if (statusContainer) { 
-            // Assign the HTML string using template literal (backticks)
-            statusContainer.innerHTML = `<p class="error-message">${errorMessage}</p>`;
-       }
-  }
-  // Update timestamp only on general status load failure
-  if (targetElement === statusContainer && timestampSpan) { 
-      timestampSpan.textContent = "Error"; 
-  }
+    if (targetElement) {
+         // Assign the HTML string using template literal (backticks)
+         targetElement.innerHTML = `<p class="error-message">${errorMessage}</p>`; 
+    } else {
+        // Fallback if no target somehow
+         console.error("Error handler called without a target element!");
+         if (statusContainer) { 
+              // Assign the HTML string using template literal (backticks)
+              statusContainer.innerHTML = `<p class="error-message">${errorMessage}</p>`;
+         }
+    }
+    // Update timestamp only on general status load failure
+    if (targetElement === statusContainer && timestampSpan) { 
+        timestampSpan.textContent = "Error"; 
+    }
 }
 
 /**
@@ -312,7 +312,7 @@ async function handleLineClick(event) {
   if (currentButton) currentButton.disabled = true; 
   targetContentElement.innerHTML = '<p>Loading details...</p>'; 
 
-  const detailUrl = `<span class="math-inline">\{API\_BASE\_URL\}/lines/</span>{lineId}/details`;
+  const detailUrl = `${API_BASE_URL}/lines/${lineId}/details`;
   console.log("Fetching details from:", detailUrl);
 
   try {
